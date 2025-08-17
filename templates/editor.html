@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Solidity Code Editor</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ext-language_tools.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/mode-solidity.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f9f9f9;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    #editor {
+      width: 100%;
+      height: 400px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    #compileBtn {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #007bff;
+      color: white;
+    }
+    #compileBtn:hover {
+      background: #0056b3;
+    }
+    #output {
+      margin-top: 20px;
+      padding: 15px;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      max-height: 500px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-size: 14px;
+    }
+    .nav-link {
+      display: inline-block;
+      margin-bottom: 20px;
+      text-decoration: none;
+      background: #28a745;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 6px;
+    }
+    .nav-link:hover {
+      background: #218838;
+    }
+  </style>
+</head>
+<body>
+  <a href="{{ url_for('index') }}" class="nav-link">⬅ Back to Auditor</a>
+  <h1>📝 Solidity Code Editor</h1>
+
+  <div id="editor"></div>
+  <button id="compileBtn">⚡ Compile</button>
+
+  <h2>Output</h2>
+  <div id="output">Click "Compile" to see results here.</div>
+
+  <script>
+    // Initialize Ace Editor
+    const editor = ace.edit("editor");
+    editor.setTheme("ace/theme/monokai");
+    editor.session.setMode("ace/mode/solidity");
+    editor.setOptions({
+      fontSize: "14px",
+      enableBasicAutocompletion: true,
+      enableSnippets: true,
+      enableLiveAutocompletion: true,
+    });
+
+    // Default template
+    editor.setValue(`// Write your Solidity contract here
+pragma solidity ^0.8.20;
+
+contract HelloWorld {
+    string public message = "Hello, Blockchain!";
+}
+`, -1);
+
+    document.getElementById("compileBtn").onclick = async () => {
+      const code = editor.getValue();
+      const outputDiv = document.getElementById("output");
+      outputDiv.innerText = "⏳ Compiling...";
+
+      try {
+        const response = await fetch("/compile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          // Show contract details nicely
+          outputDiv.innerHTML = 
+            `<b>✅ Compilation Successful!</b><br><br>` +
+            `<b>Contract Name:</b> ${result.contractName}<br><br>` +
+            `<b>ABI:</b><pre>${JSON.stringify(result.abi, null, 2)}</pre><br>` +
+            `<b>Bytecode:</b><pre>${result.bytecode}</pre>`;
+        } else {
+          outputDiv.innerText = "❌ Error: " + result.error;
+        }
+      } catch (err) {
+        outputDiv.innerText = "⚠️ Request failed: " + err;
+      }
+    };
+  </script>
+</body>
+</html>
